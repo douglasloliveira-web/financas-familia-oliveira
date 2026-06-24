@@ -891,7 +891,10 @@ function afterLogin(resp) {
   fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: { Authorization: 'Bearer ' + accessToken }
   }).then(r => r.json()).then(u => {
-    document.getElementById('user-info').textContent = '👤 ' + (u.name || u.email);
+    const nome = u.given_name || u.name || u.email || 'Usuário';
+    document.getElementById('user-info').textContent = '👤 ' + nome;
+  }).catch(() => {
+    document.getElementById('user-info').textContent = '👤 Douglas';
   });
   carregarDrive();
   carregarMes();
