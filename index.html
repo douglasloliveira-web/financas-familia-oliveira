@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestão Financeira — Família Oliveira</title>
+
+<!-- Google APIs -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js"></script>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+/* ── Reset + Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0B1622;
+  --card:    #111D2C;
+  --border:  #1E3A5F;
+  --accent:  #2E86AB;
+  --green:   #27AE60;
+  --red:     #E74C3C;
+  --yellow:  #F39C12;
+  --purple:  #8E44AD;
+  --teal:    #16A085;
+  --white:   #E8F0FE;
+  --muted:   #5A7A9A;
+  --input:   #162236;
+  --radius:  10px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header {
+  background: linear-gradient(135deg, #0B1622, #111D2C);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 20px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.header-title { font-size: 17px; font-weight: 800; letter-spacing: 1px; }
+.header-sub   { color: var(--muted); font-size: 11px; margin-top: 2px; }
+.header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ── Auth ─────────────────────────────────────────────────────────────────── */
+#auth-section {
+  max-width: 480px;
+  margin: 80px auto;
+  text-align: center;
+  padding: 20px;
+}
+.auth-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 32px;
+}
+.auth-icon { font-size: 48px; margin-bottom: 16px; }
+.auth-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.auth-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; line-height: 1.6; }
+#google-btn {
+  background: #fff;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  transition: opacity .2s;
+}
+#google-btn:hover { opacity: .9; }
+#google-btn img { width: 20px; }
+
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 2px;
+  margin-top: 12px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color .15s;
+}
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Main layout ──────────────────────────────────────────────────────────── */
+.main { max-width: 1200px; margin: 20px auto; padding: 0 16px 40px; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── Month selector ───────────────────────────────────────────────────────── */
+.month-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.month-bar select, .month-bar button {
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--white);
+  padding: 8px 14px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.month-bar select { min-width: 160px; }
+.btn-save  { background: var(--green) !important; border-color: var(--green) !important; font-weight: 700; }
+.btn-cloud { background: var(--accent) !important; border-color: var(--accent) !important; font-weight: 700; }
+.drive-status { font-size: 11px; color: var(--muted); }
+.drive-status.ok  { color: var(--green); }
+.drive-status.err { color: var(--red); }
+
+/* ── Grid de formulário ───────────────────────────────────────────────────── */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 16px;
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+/* ── Form fields ──────────────────────────────────────────────────────────── */
+.field { margin-bottom: 10px; }
+.field label {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.field-wrap { position: relative; }
+.field-prefix {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+.field input, .field textarea {
+  width: 100%;
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--white);
+  padding: 8px 10px 8px 32px;
+  font-size: 13px;
+  font-family: monospace;
+  outline: none;
+  transition: border-color .15s;
+}
+.field input.no-prefix { padding-left: 10px; font-family: inherit; }
+.field input:focus, .field textarea:focus { border-color: var(--accent); }
+.field .hint {
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 3px;
+  font-style: italic;
+}
+.field-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+
+/* ── Toggle ───────────────────────────────────────────────────────────────── */
+.toggle-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.toggle {
+  width: 36px; height: 20px; border-radius: 10px;
+  background: var(--border); cursor: pointer;
+  position: relative; transition: background .2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--green); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left .2s;
+}
+.toggle.on::after { left: 18px; }
+.toggle-label { font-size: 12px; color: var(--white); }
+
+/* ── Mini box calculado ───────────────────────────────────────────────────── */
+.calc-box {
+  background: var(--input);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.calc-row.total {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 4px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.calc-lbl { color: var(--muted); }
+.calc-val { font-family: monospace; }
+.green { color: var(--green); }
+.red   { color: var(--red); }
+.yellow { color: var(--yellow); }
+.accent { color: var(--accent); }
+.purple { color: var(--purple); }
+.teal   { color: var(--teal); }
+.muted  { color: var(--muted); }
+
+/* ── Highlight box ────────────────────────────────────────────────────────── */
+.highlight-box {
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.highlight-box .hb-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  margin-bottom: 8px;
+}
+
+/* ── Status badge ─────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  border-radius: 5px;
+  padding: 2px 9px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* ── KPIs ─────────────────────────────────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.kpi {
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.kpi-lbl { color: var(--muted); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 4px; }
+.kpi-val { font-size: 16px; font-weight: 800; font-family: monospace; }
+.kpi-sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+/* ── Tabela resumo ────────────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th {
+  padding: 8px 10px;
+  text-align: right;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  border-bottom: 1px solid var(--border);
+  background: #0a1520;
+  white-space: nowrap;
+}
+th:first-child { text-align: left; }
+td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #0f172a;
+  font-family: monospace;
+  text-align: right;
+  white-space: nowrap;
+}
+td:first-child { text-align: left; font-family: inherit; font-weight: 700; color: var(--white); }
+tr:nth-child(even) td { background: var(--input); }
+tr.total-row td { background: var(--border); font-weight: 800; }
+.c6-ok  { color: var(--green); }
+.c6-bad { color: var(--red); }
+
+/* ── Gráficos ─────────────────────────────────────────────────────────────── */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.chart-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.chart-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin-bottom: 14px; }
+canvas { max-height: 240px; }
+
+/* ── Barra progresso ──────────────────────────────────────────────────────── */
+.prog-bar { background: var(--input); border-radius: 6px; height: 10px; overflow: hidden; margin: 6px 0 3px; }
+.prog-fill { height: 100%; border-radius: 6px; transition: width .4s; }
+.prog-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); }
+
+/* ── Detalhe linha ────────────────────────────────────────────────────────── */
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-lbl { color: var(--muted); }
+.detail-val { font-family: monospace; font-weight: 600; }
+
+/* ── Análise automática ───────────────────────────────────────────────────── */
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.analysis-item {
+  background: var(--input);
+  border-radius: 8px;
+  padding: 12px 14px;
+  border-left: 3px solid var(--border);
+}
+.analysis-title { font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+.analysis-text  { color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+/* ── Toast ────────────────────────────────────────────────────────────────── */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  display: none;
+  z-index: 999;
+  animation: fadeIn .2s;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .header-inner { flex-direction: column; align-items: flex-start; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH ══════════════════════════════════════════════════════════════════ -->
+<div id="auth-section">
+  <div class="auth-card">
+    <div class="auth-icon">💼</div>
+    <div class="auth-title">Gestão Financeira</div>
+    <div class="auth-title" style="color:var(--accent);margin-bottom:4px">Família Oliveira</div>
+    <div class="auth-sub">
+      Faça login com o Google para salvar e sincronizar os dados no Google Drive.<br>
+      Compartilhado entre Douglas e Daiane.
+    </div>
+    <button id="google-btn" onclick="handleAuthClick()">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+      Entrar com Google
+    </button>
+    <div id="auth-error" style="color:var(--red);font-size:12px;margin-top:14px;display:none"></div>
+  </div>
+</div>
+
+<!-- ══ APP ════════════════════════════════════════════════════════════════════ -->
+<div id="app-section" style="display:none">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-inner">
+      <div>
+        <div class="header-title">💼 GESTÃO FINANCEIRA · FAMÍLIA OLIVEIRA</div>
+        <div class="header-sub">Douglas & Daiane · 2026 · Sincronizado com Google Drive</div>
+      </div>
+      <div class="header-right">
+        <div id="user-info" style="font-size:12px;color:var(--muted)"></div>
+        <button onclick="signOut()" style="background:var(--input);border:1px solid var(--border);border-radius:8px;color:var(--muted);padding:6px 12px;cursor:pointer;font-size:11px;">Sair</button>
+      </div>
+    </div>
+    <div class="header-inner" style="margin-top:0">
+      <div class="tabs" style="width:100%">
+        <button class="tab-btn active" onclick="showTab('lancamento',this)">📝 Lançamento</button>
+        <button class="tab-btn" onclick="showTab('resumo',this)">📊 Resumo</button>
+        <button class="tab-btn" onclick="showTab('graficos',this)">📈 Gráficos</button>
+        <button class="tab-btn" onclick="showTab('historico',this)">📋 Histórico</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Barra mês -->
+    <div class="month-bar">
+      <select id="mes-sel" onchange="carregarMes()">
+        <option>Janeiro</option><option>Fevereiro</option><option>Março</option>
+        <option>Abril</option><option>Maio</option><option selected>Junho</option>
+        <option>Julho</option><option>Agosto</option><option>Setembro</option>
+        <option>Outubro</option><option>Novembro</option><option>Dezembro</option>
+      </select>
+      <button class="btn-save" onclick="salvarLocal()">💾 Salvar</button>
+      <button class="btn-cloud" onclick="salvarDrive()">☁️ Salvar no Drive</button>
+      <button onclick="carregarDrive()" style="background:var(--input);border:1px solid var(--border);border-radius:8px;color:var(--white);padding:8px 14px;cursor:pointer;font-size:13px;">🔄 Carregar Drive</button>
+      <span id="drive-status" class="drive-status"></span>
+    </div>
+
+    <!-- ── LANÇAMENTO ────────────────────────────────────────────────────── -->
+    <div id="tab-lancamento" class="tab-content active">
+      <div class="form-grid">
+
+        <!-- Receitas -->
+        <div class="card">
+          <div class="section-title" style="color:var(--green)">📥 Receitas — Fim do Mês</div>
+          <div class="field-2col">
+            <div class="field">
+              <label>Salário Líq. Douglas</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="sal_douglas" value="5948" step="0.01" oninput="calcular()"></div>
+            </div>
+            <div class="field">
+              <label>Salário Daiane</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="sal_daiane" value="6900" step="0.01" oninput="calcular()"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Aluguel</label>
+            <div class="field-wrap"><span class="field-prefix">R$</span>
+            <input type="number" id="aluguel" value="930" step="0.01" oninput="calcular()"></div>
+            <div class="hint">Atualizado para R$ 930/mês</div>
+          </div>
+          <div class="field">
+            <label>Dividendos / Proventos (FIIs + Ações)</label>
+            <div class="field-wrap"><span class="field-prefix">R$</span>
+            <input type="number" id="dividendos" value="800" step="0.01" oninput="calcular()"></div>
+            <div class="hint">Varia mensalmente — informar o recebido</div>
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px">
+            <div style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:10px">🎁 Extras — quando houver</div>
+            <div class="field-2col">
+              <div class="field">
+                <label>Saque FGTS Aniversário</label>
+                <div class="field-wrap"><span class="field-prefix">R$</span>
+                <input type="number" id="fgts" value="0" step="0.01" oninput="calcular()"></div>
+              </div>
+              <div class="field">
+                <label>1/3 Férias</label>
+                <div class="field-wrap"><span class="field-prefix">R$</span>
+                <input type="number" id="ferias" value="0" step="0.01" oninput="calcular()"></div>
+              </div>
+              <div class="field">
+                <label>PLR (Douglas ou Daiane)</label>
+                <div class="field-wrap"><span class="field-prefix">R$</span>
+                <input type="number" id="plr" value="0" step="0.01" oninput="calcular()"></div>
+              </div>
+              <div class="field">
+                <label>Restituição IR</label>
+                <div class="field-wrap"><span class="field-prefix">R$</span>
+                <input type="number" id="restituicao" value="0" step="0.01" oninput="calcular()"></div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Outros</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="outros_rec" value="0" step="0.01" oninput="calcular()"></div>
+            </div>
+          </div>
+          <div class="calc-box">
+            <div class="calc-row"><span class="calc-lbl">Recorrente (sal. + aluguel)</span><span class="calc-val green" id="c-recorrente">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">Extras</span><span class="calc-val yellow" id="c-extras">—</span></div>
+            <div class="calc-row total"><span class="calc-lbl green">TOTAL RECEITA</span><span class="calc-val green" id="c-rec-total">—</span></div>
+          </div>
+        </div>
+
+        <!-- Despesas fixas -->
+        <div class="card">
+          <div class="section-title" style="color:var(--yellow)">📤 Despesas Fixas — Fim do Mês</div>
+          <div class="field-2col">
+            <div class="field">
+              <label>Pessoal Daiane</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="pessoal_daiane" value="600" step="0.01" oninput="calcular()"></div>
+            </div>
+            <div class="field">
+              <label>Pessoal Douglas</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="pessoal_douglas" value="600" step="0.01" oninput="calcular()"></div>
+            </div>
+            <div class="field">
+              <label>Luz</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="luz" value="275" step="0.01" oninput="calcular()"></div>
+            </div>
+            <div class="field">
+              <label>Água</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="agua" value="228" step="0.01" oninput="calcular()"></div>
+            </div>
+            <div class="field">
+              <label>Internet (Netplus)</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="internet" value="89.99" step="0.01" oninput="calcular()"></div>
+            </div>
+            <div class="field">
+              <label>Club</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="club" value="155" step="0.01" oninput="calcular()"></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Vivo (2 linhas — Douglas + Daiane)</label>
+            <div class="field-wrap"><span class="field-prefix">R$</span>
+            <input type="number" id="vivo" value="96" step="0.01" oninput="calcular()"></div>
+          </div>
+          <div class="field-2col">
+            <div class="field">
+              <label>Unimed Plano</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="unimed_plano" value="60.23" step="0.01" oninput="calcular()"></div>
+            </div>
+            <div class="field">
+              <label>Unimed Cop.</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="unimed_cop" value="36.57" step="0.01" oninput="calcular()"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Unimed Dependentes</label>
+            <div class="field-wrap"><span class="field-prefix">R$</span>
+            <input type="number" id="unimed_dep" value="296.64" step="0.01" oninput="calcular()"></div>
+          </div>
+          <div class="field-2col">
+            <div class="field">
+              <label>Sindicato</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="sindicato" value="30.11" step="0.01" oninput="calcular()"></div>
+            </div>
+            <div class="field">
+              <label>Refeitório</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="refeitorio" value="28.82" step="0.01" oninput="calcular()"></div>
+            </div>
+          </div>
+
+          <!-- Farmácia -->
+          <div class="highlight-box" style="background:#0d2020;border:1px solid #1a5050">
+            <div class="hb-title" style="color:var(--teal)">💊 FARMÁCIA — Convênio Sindicato</div>
+            <div class="field" style="margin-bottom:4px">
+              <label>Valor farmácia (pago em dinheiro)</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="farmacia" value="500" step="0.01" oninput="calcular()"></div>
+            </div>
+            <div class="hint" style="margin-top:4px">Variável e em redução. Pagamento em dinheiro = maior desconto no convênio sindicato. Valor parcialmente migrado para cartão.</div>
+          </div>
+
+          <!-- Diarista -->
+          <div class="highlight-box" style="background:#0d2015;border:1px solid #1a5030">
+            <div class="hb-title" style="color:#8BC34A">🧹 DIARISTA — R$ 130/dia</div>
+            <div class="field" style="margin-bottom:4px">
+              <label>Quantas vezes veio no mês</label>
+              <div class="field-wrap"><span class="field-prefix">×</span>
+              <input type="number" id="diarista_dias" value="2" min="0" max="10" step="1" oninput="calcular()"></div>
+            </div>
+            <div class="hint">1 vez = R$130 · 2 vezes = R$260 · 3 vezes = R$390 · geralmente 2 a 3x/mês</div>
+            <div style="margin-top:6px;font-size:12px;color:var(--muted)">Total diarista: <strong id="c-diarista" style="color:var(--white)">—</strong></div>
+          </div>
+
+          <!-- Doações -->
+          <div class="highlight-box" style="background:#1a0d2a;border:1px solid #3d1a5a">
+            <div class="hb-title" style="color:#A78BFA">🤲 DOAÇÕES — 1% da Receita Total</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+              Auto: <strong id="c-doacoes-auto" style="color:var(--white)">—</strong> = 1% de <span id="c-rec-ref">—</span><br>
+              <span style="font-style:italic">LBV · Dízimo · Policlínica · Lareira · Loterias sociais.<br>Quanto mais a família recebe, mais doa.</span>
+            </div>
+            <div class="toggle-wrap">
+              <div id="toggle-doacoes" class="toggle" onclick="toggleDoacoes()"></div>
+              <span class="toggle-label">Informar valor manualmente</span>
+            </div>
+            <div id="doacoes-manual-field" class="field" style="display:none">
+              <label>Valor doações (manual)</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="doacoes_valor" value="0" step="0.01" oninput="calcular()"></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Escola Pedro</label>
+            <div class="field-wrap"><span class="field-prefix">R$</span>
+            <input type="number" id="escola_pedro" value="770" step="0.01" oninput="calcular()"></div>
+            <div class="hint">Migra para pública em jan/2027</div>
+          </div>
+          <div class="field-2col">
+            <div class="field">
+              <label>Pós-grad Daiane</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="pos_daiane" value="75.91" step="0.01" oninput="calcular()"></div>
+            </div>
+            <div class="field">
+              <label>IPTU / IPVA</label>
+              <div class="field-wrap"><span class="field-prefix">R$</span>
+              <input type="number" id="iptu_ipva" value="0" step="0.01" oninput="calcular()"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Extras / Despesas Eventuais</label>
+            <div class="field-wrap"><span class="field-prefix">R$</span>
+            <input type="number" id="extras_desp" value="0" step="0.01" oninput="calcular()"></div>
+            <div class="hint">Festa aniversário, rolagem cartão, etc.</div>
+          </div>
+        </div>
+
+        <!-- Dia 15 + Investimento -->
+        <div class="card">
+          <div class="section-title" style="color:var(--red)">📅 Dia 15 — Quinzena + Obrigações</div>
+          <div class="calc-box">
+            <div class="calc-row">
+              <span class="calc-lbl">Adiantamento Douglas (fixo)</span>
+              <span class="calc-val green">R$ 4.484,00</span>
+            </div>
+            <div class="hint" style="margin:4px 0 0">Aplicado no C6 do dia 5 até o dia 15</div>
+          </div>
+          <div class="field">
+            <label>Fatura C6 <span id="c6-badge" class="badge"></span></label>
+            <div class="field-wrap"><span class="field-prefix">R$</span>
+            <input type="number" id="fatura_c6" value="7000" step="0.01" oninput="calcular()"></div>
+            <div class="hint">Meta: R$ 7.000 — média histórica R$ 7.347</div>
+          </div>
+          <!-- Barra C6 -->
+          <div style="margin-bottom:12px">
+            <div class="prog-bar"><div id="prog-c6" class="prog-fill" style="background:var(--green);width:78%"></div></div>
+            <div class="prog-labels"><span>R$ 0</span><span style="color:var(--green)">Meta R$ 7K</span><span>R$ 9K</span></div>
+          </div>
+
+          <div class="field">
+            <label>Prestação Casa Pato Branco</label>
+            <div class="field-wrap"><span class="field-prefix">R$</span>
+            <input type="number" id="prestacao_pb" value="530" step="0.01" oninput="calcular()"></div>
+            <div class="hint">Quita dez/2027 → -R$ 530/mês a partir de jan/2028</div>
+          </div>
+          <div class="calc-box">
+            <div class="calc-row"><span class="calc-lbl">Total dia 15</span><span class="calc-val red" id="c-dia15">—</span></div>
+            <div class="calc-row total">
+              <span class="calc-lbl">Resultado quinzena</span>
+              <span class="calc-val" id="c-res-quinzena">—</span>
+            </div>
+            <div class="hint" style="margin-top:6px">Déficit estrutural coberto pelo salário do fim do mês</div>
+          </div>
+
+          <div class="section-title" style="color:var(--accent);margin-top:8px">💼 Investimento do Mês</div>
+          <div class="field">
+            <label>Total investido no mês</label>
+            <div class="field-wrap"><span class="field-prefix">R$</span>
+            <input type="number" id="investido" value="0" step="0.01" oninput="calcular()"></div>
+            <div class="hint">PGBL + Avenue + Ações + FIIs + IPCA+ + Pedro</div>
+          </div>
+          <div id="meta-box" class="calc-box">
+            <div class="calc-row"><span class="calc-lbl">Meta 30% (base recorrente)</span><span class="calc-val" id="c-meta30">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">% Investido</span><span class="calc-val" id="c-pct-inv">—</span></div>
+            <div class="calc-row"><span class="calc-lbl">vs Meta</span><span class="calc-val" id="c-vs-meta">—</span></div>
+            <div style="text-align:center;font-weight:800;font-size:14px;margin-top:10px" id="c-status-meta">—</div>
+          </div>
+
+          <div class="field" style="margin-top:10px">
+            <label>Notas do mês</label>
+            <textarea id="notas" rows="3" class="no-prefix" style="width:100%;background:var(--input);border:1px solid var(--border);border-radius:7px;color:var(--white);padding:8px 10px;font-family:inherit;font-size:12px;resize:vertical;outline:none;" placeholder="Eventos especiais, observações..."></textarea>
+          </div>
+          <button onclick="salvarLocal()" style="width:100%;background:var(--green);border:none;border-radius:10px;color:#fff;padding:12px;font-weight:800;font-size:14px;cursor:pointer;margin-top:8px">💾 Salvar {Mês}</button>
+          <button onclick="salvarDrive()" style="width:100%;background:var(--accent);border:none;border-radius:10px;color:#fff;padding:10px;font-weight:700;font-size:13px;cursor:pointer;margin-top:6px">☁️ Salvar no Google Drive</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── RESUMO ─────────────────────────────────────────────────────────── -->
+    <div id="tab-resumo" class="tab-content">
+      <div id="resumo-vazio" style="text-align:center;padding:40px;color:var(--muted);display:none">
+        <div style="font-size:40px;margin-bottom:12px">📊</div>
+        <div style="font-size:15px;font-weight:700;color:var(--white)">Salve o mês para ver o resumo</div>
+      </div>
+      <div id="resumo-content">
+        <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="form-grid">
+          <div class="card" id="card-receitas"></div>
+          <div class="card" id="card-despesas"></div>
+          <div class="card" id="card-quinzena"></div>
+          <div class="card" id="card-analise"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GRÁFICOS ───────────────────────────────────────────────────────── -->
+    <div id="tab-graficos" class="tab-content">
+      <div id="graficos-vazio" style="text-align:center;padding:60px;color:var(--muted)">
+        <div style="font-size:40px;margin-bottom:12px">📈</div>
+        <div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:8px">Nenhum dado salvo ainda</div>
+        <div>Preencha os meses e salve para ver os gráficos.</div>
+      </div>
+      <div id="graficos-content" style="display:none">
+        <div class="chart-grid">
+          <div class="chart-card" style="grid-column:1/-1">
+            <div class="chart-title">Receita · Custo Total · Investido</div>
+            <canvas id="chart-rec-custo"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">% Investido vs Meta 30%</div>
+            <canvas id="chart-meta"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Fatura C6 — Controle de Gastos (meta R$ 7.000)</div>
+            <canvas id="chart-c6"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Doações — 1% da Receita Total</div>
+            <canvas id="chart-doacoes"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HISTÓRICO ──────────────────────────────────────────────────────── -->
+    <div id="tab-historico" class="tab-content">
+      <div id="historico-vazio" style="text-align:center;padding:60px;color:var(--muted)">
+        <div style="font-size:40px;margin-bottom:12px">📋</div>
+        <div style="font-size:15px;font-weight:700;color:var(--white)">Nenhum mês salvo ainda</div>
+      </div>
+      <div id="historico-content" style="display:none">
+        <div class="table-wrap">
+          <table id="tabela-historico">
+            <thead>
+              <tr>
+                <th style="text-align:left">Mês</th>
+                <th>Receita</th>
+                <th>Custo</th>
+                <th>Saldo</th>
+                <th>Investido</th>
+                <th>Meta 30%</th>
+                <th>vs Meta</th>
+                <th>% Inv.</th>
+                <th>Fatura C6</th>
+                <th>Doações</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-historico"></tbody>
+            <tfoot id="tfoot-historico"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app-section -->
+
+<div id="toast"></div>
+
+<script>
+// ══ CONFIG GOOGLE ════════════════════════════════════════════════════════════
+// INSTRUÇÕES DE CONFIGURAÇÃO:
+// 1. Acesse https://console.cloud.google.com
+// 2. Crie um projeto → APIs & Services → Credentials
+// 3. Crie um "OAuth 2.0 Client ID" (tipo Web Application)
+// 4. Em "Authorized JavaScript Origins" adicione o domínio onde hospedar este arquivo
+// 5. Cole o Client ID abaixo:
+const CLIENT_ID = '60391088283-t3bg9b6h5o8vu0kvh1lh6f193gc8j8c9.apps.googleusercontent.com';
+const API_KEY   = 'SUA_API_KEY_AQUI'; // Opcional para Drive
+const SCOPES    = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILENAME = 'financas_oliveira_2026.json';
+
+// ══ ESTADO ═══════════════════════════════════════════════════════════════════
+let tokenClient = null;
+let accessToken = null;
+let driveFileId = null;
+let doacoes_manual = false;
+
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+               'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// Dados em memória: { Mes: { campos... } }
+let dados = JSON.parse(localStorage.getItem('financas_oliveira') || '{}');
+
+// ══ AUTH ══════════════════════════════════════════════════════════════════════
+window.onload = () => {
+  // Tentar login silencioso
+  gapi.load('client', initGapiClient);
+};
+
+function initGapiClient() {
+  gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] })
+    .then(() => {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: (resp) => {
+          if (resp.error) { showToast('Erro de autenticação: ' + resp.error, 'err'); return; }
+          accessToken = resp.access_token;
+          gapi.client.setToken({ access_token: accessToken });
+          afterLogin(resp);
+        },
+      });
+      // Se CLIENT_ID não configurado, mostrar app direto (modo offline)
+      if (CLIENT_ID === 'PLACEHOLDER_OFFLINE') {
+        modoOffline();
+      }
+    });
+}
+
+function handleAuthClick() {
+  if (CLIENT_ID === 'PLACEHOLDER_OFFLINE') {
+    modoOffline(); return;
+  }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function modoOffline() {
+  document.getElementById('auth-section').style.display = 'none';
+  document.getElementById('app-section').style.display = 'block';
+  document.getElementById('user-info').textContent = '💾 Modo local (sem Drive)';
+  document.getElementById('drive-status').textContent = '⚠️ Configure o Client ID para habilitar o Drive';
+  carregarMes();
+  calcular();
+}
+
+function afterLogin(resp) {
+  document.getElementById('auth-section').style.display = 'none';
+  document.getElementById('app-section').style.display = 'block';
+  // Pegar nome do usuário
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: 'Bearer ' + accessToken }
+  }).then(r => r.json()).then(u => {
+    document.getElementById('user-info').textContent = '👤 ' + (u.name || u.email);
+  });
+  carregarDrive();
+  carregarMes();
+  calcular();
+}
+
+function signOut() {
+  if (accessToken) google.accounts.oauth2.revoke(accessToken);
+  accessToken = null;
+  document.getElementById('app-section').style.display = 'none';
+  document.getElementById('auth-section').style.display = 'block';
+}
+
+// ══ TABS ══════════════════════════════════════════════════════════════════════
+function showTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'resumo')   renderResumo();
+  if (id === 'graficos') renderGraficos();
+  if (id === 'historico') renderHistorico();
+}
+
+// ══ HELPERS ══════════════════════════════════════════════════════════════════
+const brl = v => isNaN(v) || v == null ? '—' : 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct = v => isNaN(v) || v == null ? '—' : (v*100).toFixed(1) + '%';
+const n   = id => parseFloat(document.getElementById(id)?.value) || 0;
+
+function showToast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  t.textContent = type === 'ok' ? '✅ ' + msg : '⚠️ ' + msg;
+  t.style.display = 'block';
+  t.style.color = type === 'ok' ? 'var(--green)' : 'var(--red)';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function setVal(id, v) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = v;
+}
+
+function setColor(id, color) {
+  const el = document.getElementById(id);
+  if (el) el.style.color = color;
+}
+
+// ══ CALCULAR ═════════════════════════════════════════════════════════════════
+function calcular() {
+  const rec = {
+    sal_douglas:  n('sal_douglas'),
+    sal_daiane:   n('sal_daiane'),
+    aluguel:      n('aluguel'),
+    dividendos:   n('dividendos'),
+    fgts:         n('fgts'),
+    ferias:       n('ferias'),
+    plr:          n('plr'),
+    restituicao:  n('restituicao'),
+    outros_rec:   n('outros_rec'),
+  };
+  const recorrente = rec.sal_douglas + rec.sal_daiane + rec.aluguel;
+  const extras     = rec.dividendos + rec.fgts + rec.ferias + rec.plr + rec.restituicao + rec.outros_rec;
+  const rec_total  = recorrente + extras;
+
+  const doacoes_auto = rec_total * 0.01;
+  const doacoes = doacoes_manual ? n('doacoes_valor') : doacoes_auto;
+  setVal('c-doacoes-auto', brl(doacoes_auto));
+  setVal('c-rec-ref', brl(rec_total));
+
+  const diarista_val = n('diarista_dias') * 130;
+  setVal('c-diarista', brl(diarista_val));
+
+  const fixas = n('pessoal_daiane') + n('pessoal_douglas') +
+    n('luz') + n('agua') + n('internet') + n('club') + n('vivo') +
+    n('unimed_plano') + n('unimed_cop') + n('unimed_dep') +
+    n('sindicato') + n('refeitorio') + n('farmacia') +
+    n('escola_pedro') + n('pos_daiane') + n('iptu_ipva') +
+    n('extras_desp') + diarista_val + doacoes;
+
+  const dia15_total = n('fatura_c6') + n('prestacao_pb');
+  const res_quinzena = 4484 - dia15_total;
+  const custo_total  = fixas + dia15_total;
+  const saldo        = rec_total - custo_total;
+  const meta30       = recorrente * 0.30;
+  const investido    = n('investido');
+  const pct_inv      = rec_total > 0 ? investido / rec_total : 0;
+  const vs_meta      = investido - meta30;
+  const atingiu      = investido >= meta30;
+
+  // Atualizar UI
+  setVal('c-recorrente', brl(recorrente));
+  setVal('c-extras', brl(extras));
+  setVal('c-rec-total', brl(rec_total));
+  setVal('c-dia15', brl(dia15_total));
+  setVal('c-res-quinzena', brl(res_quinzena));
+  setVal('c-meta30', brl(meta30));
+  setVal('c-pct-inv', pct(pct_inv));
+  setVal('c-vs-meta', brl(vs_meta));
+
+  document.getElementById('c-res-quinzena').style.color = res_quinzena >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('c-vs-meta').style.color = vs_meta >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('c-pct-inv').style.color = pct_inv >= 0.30 ? 'var(--green)' : pct_inv >= 0.20 ? 'var(--yellow)' : 'var(--red)';
+
+  const metaBox = document.getElementById('meta-box');
+  metaBox.style.background = atingiu ? '#0a2a0a' : '#2a0a0a';
+  metaBox.style.border = '1px solid ' + (atingiu ? 'var(--green)' : 'var(--red)');
+
+  const statusEl = document.getElementById('c-status-meta');
+  statusEl.textContent = atingiu ? '✅ META ATINGIDA' : '⚠️ ABAIXO DA META';
+  statusEl.style.color = atingiu ? 'var(--green)' : 'var(--red)';
+
+  // Badge C6
+  const c6Val = n('fatura_c6');
+  const badge = document.getElementById('c6-badge');
+  badge.textContent = c6Val <= 7000 ? '✅ Meta' : '⚠️ Acima';
+  badge.style.background = c6Val <= 7000 ? 'var(--green)' : 'var(--red)';
+  badge.style.color = '#fff';
+  const progPct = Math.min((c6Val / 9000) * 100, 100);
+  document.getElementById('prog-c6').style.width = progPct + '%';
+  document.getElementById('prog-c6').style.background = c6Val <= 7000 ? 'var(--green)' : 'var(--red)';
+
+  return { recorrente, extras, rec_total, fixas, diarista_val, doacoes,
+           dia15_total, res_quinzena, custo_total, saldo, meta30,
+           investido, pct_inv, vs_meta, atingiu };
+}
+
+// ══ DOAÇÕES TOGGLE ════════════════════════════════════════════════════════════
+function toggleDoacoes() {
+  doacoes_manual = !doacoes_manual;
+  const tog = document.getElementById('toggle-doacoes');
+  tog.classList.toggle('on', doacoes_manual);
+  document.getElementById('doacoes-manual-field').style.display = doacoes_manual ? 'block' : 'none';
+  calcular();
+}
+
+// ══ CAMPOS → OBJETO ══════════════════════════════════════════════════════════
+const CAMPOS = ['sal_douglas','sal_daiane','aluguel','dividendos','fgts','ferias','plr',
+  'restituicao','outros_rec','pessoal_daiane','pessoal_douglas','luz','agua','internet',
+  'club','vivo','unimed_plano','unimed_cop','unimed_dep','sindicato','refeitorio',
+  'farmacia','diarista_dias','escola_pedro','pos_daiane','iptu_ipva','extras_desp',
+  'fatura_c6','prestacao_pb','investido'];
+
+function camposParaObj() {
+  const obj = { doacoes_manual };
+  CAMPOS.forEach(c => { obj[c] = parseFloat(document.getElementById(c)?.value) || 0; });
+  obj.notas = document.getElementById('notas').value;
+  if (doacoes_manual) obj.doacoes_valor = n('doacoes_valor');
+  return obj;
+}
+
+function objParaCampos(obj) {
+  if (!obj) return;
+  CAMPOS.forEach(c => {
+    const el = document.getElementById(c);
+    if (el && obj[c] != null) el.value = obj[c];
+  });
+  const notas = document.getElementById('notas');
+  if (notas) notas.value = obj.notas || '';
+  doacoes_manual = !!obj.doacoes_manual;
+  document.getElementById('toggle-doacoes').classList.toggle('on', doacoes_manual);
+  document.getElementById('doacoes-manual-field').style.display = doacoes_manual ? 'block' : 'none';
+  if (doacoes_manual && obj.doacoes_valor) {
+    document.getElementById('doacoes_valor').value = obj.doacoes_valor;
+  }
+}
+
+// ══ SALVAR LOCAL ══════════════════════════════════════════════════════════════
+function salvarLocal() {
+  const mes = document.getElementById('mes-sel').value;
+  dados[mes] = camposParaObj();
+  localStorage.setItem('financas_oliveira', JSON.stringify(dados));
+  showToast(mes + ' salvo localmente!');
+}
+
+// ══ CARREGAR MÊS ══════════════════════════════════════════════════════════════
+function carregarMes() {
+  const mes = document.getElementById('mes-sel').value;
+  if (dados[mes]) {
+    objParaCampos(dados[mes]);
+  }
+  calcular();
+}
+
+// ══ GOOGLE DRIVE ══════════════════════════════════════════════════════════════
+async function salvarDrive() {
+  if (!accessToken) { showToast('Faça login para salvar no Drive', 'err'); return; }
+  salvarLocal(); // garante local primeiro
+  const json = JSON.stringify(dados, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const status = document.getElementById('drive-status');
+  status.textContent = '☁️ Salvando...'; status.className = 'drive-status';
+  try {
+    if (driveFileId) {
+      await gapi.client.request({
+        path: `/upload/drive/v3/files/${driveFileId}`,
+        method: 'PATCH',
+        params: { uploadType: 'media' },
+        headers: { 'Content-Type': 'application/json' },
+        body: json,
+      });
+    } else {
+      const r = await gapi.client.request({
+        path: '/upload/drive/v3/files',
+        method: 'POST',
+        params: { uploadType: 'multipart' },
+        headers: { 'Content-Type': 'multipart/related; boundary=boundary' },
+        body: [
+          '--boundary\r\nContent-Type: application/json\r\n\r\n',
+          JSON.stringify({ name: DRIVE_FILENAME, mimeType: 'application/json' }),
+          '\r\n--boundary\r\nContent-Type: application/json\r\n\r\n',
+          json, '\r\n--boundary--'
+        ].join(''),
+      });
+      driveFileId = JSON.parse(r.body).id;
+    }
+    status.textContent = '☁️ Salvo no Drive ✅ ' + new Date().toLocaleTimeString('pt-BR');
+    status.className = 'drive-status ok';
+    showToast('Salvo no Google Drive!');
+  } catch(e) {
+    status.textContent = '❌ Erro ao salvar no Drive';
+    status.className = 'drive-status err';
+    showToast('Erro: ' + (e.result?.error?.message || e.message), 'err');
+  }
+}
+
+async function carregarDrive() {
+  if (!accessToken) return;
+  const status = document.getElementById('drive-status');
+  status.textContent = '🔄 Buscando no Drive...'; status.className = 'drive-status';
+  try {
+    const r = await gapi.client.drive.files.list({
+      q: `name='${DRIVE_FILENAME}' and trashed=false`,
+      fields: 'files(id,name,modifiedTime)',
+    });
+    const files = r.result.files;
+    if (!files || files.length === 0) {
+      status.textContent = '☁️ Sem dados no Drive ainda'; status.className = 'drive-status';
+      return;
+    }
+    driveFileId = files[0].id;
+    const content = await gapi.client.drive.files.get({ fileId: driveFileId, alt: 'media' });
+    const remote = typeof content.body === 'string' ? JSON.parse(content.body) : content.result;
+    // Mesclar: remoto prevalece
+    dados = { ...dados, ...remote };
+    localStorage.setItem('financas_oliveira', JSON.stringify(dados));
+    carregarMes();
+    status.textContent = '☁️ Drive carregado ✅ ' + new Date(files[0].modifiedTime).toLocaleString('pt-BR');
+    status.className = 'drive-status ok';
+    showToast('Dados carregados do Drive!');
+  } catch(e) {
+    status.textContent = '⚠️ Erro ao carregar Drive';
+    status.className = 'drive-status err';
+  }
+}
+
+// ══ CÁLCULO DE UM MÊS SALVO ══════════════════════════════════════════════════
+function calcMes(m) {
+  const recorrente = (m.sal_douglas||0) + (m.sal_daiane||0) + (m.aluguel||0);
+  const extras     = (m.dividendos||0)+(m.fgts||0)+(m.ferias||0)+(m.plr||0)+(m.restituicao||0)+(m.outros_rec||0);
+  const rec_total  = recorrente + extras;
+  const doacoes    = m.doacoes_manual ? (m.doacoes_valor||0) : rec_total*0.01;
+  const diarista   = (m.diarista_dias||0)*130;
+  const fixas = (m.pessoal_daiane||0)+(m.pessoal_douglas||0)+(m.luz||0)+(m.agua||0)+
+    (m.internet||0)+(m.club||0)+(m.vivo||0)+(m.unimed_plano||0)+(m.unimed_cop||0)+
+    (m.unimed_dep||0)+(m.sindicato||0)+(m.refeitorio||0)+(m.farmacia||0)+
+    (m.escola_pedro||0)+(m.pos_daiane||0)+(m.iptu_ipva||0)+(m.extras_desp||0)+diarista+doacoes;
+  const dia15     = (m.fatura_c6||0)+(m.prestacao_pb||0);
+  const custo     = fixas+dia15;
+  const saldo     = rec_total-custo;
+  const meta30    = recorrente*0.30;
+  const inv       = m.investido||0;
+  const pct_inv   = rec_total>0?inv/rec_total:0;
+  return { recorrente,extras,rec_total,doacoes,diarista,fixas,dia15,custo,saldo,meta30,inv,pct_inv,vs_meta:inv-meta30,atingiu:inv>=meta30 };
+}
+
+// ══ RESUMO ════════════════════════════════════════════════════════════════════
+function renderResumo() {
+  const c = calcular();
+  const mes = document.getElementById('mes-sel').value;
+
+  // KPIs
+  const kpis = [
+    { l:'Receita Total', v:brl(c.rec_total), s:'Recorrente '+brl(c.recorrente), col:'var(--green)' },
+    { l:'Custo Familiar', v:brl(c.custo_total), s:'Fixas + Dia 15', col:'var(--red)' },
+    { l:'Saldo', v:brl(c.saldo), s:c.saldo>=0?'Positivo':'Negativo', col:c.saldo>=0?'var(--green)':'var(--red)' },
+    { l:'Investido', v:brl(c.investido), s:pct(c.pct_inv)+' da receita', col:'var(--accent)' },
+    { l:'Meta 30%', v:brl(c.meta30), s:c.atingiu?'✅ Atingida':'❌ Abaixo', col:c.atingiu?'var(--green)':'var(--red)' },
+    { l:'Doações 1%', v:brl(c.doacoes), s:'1% de '+brl(c.rec_total), col:'var(--purple)' },
+    { l:'Fatura C6', v:brl(n('fatura_c6')), s:n('fatura_c6')<=7000?'✅ Meta R$7K':'⚠️ Acima', col:n('fatura_c6')<=7000?'var(--green)':'var(--yellow)' },
+    { l:'Diarista', v:brl(c.diarista_val), s:n('diarista_dias')+'× R$130/dia', col:'var(--teal)' },
+  ];
+  document.getElementById('kpi-grid').innerHTML = kpis.map(k =>
+    `<div class="kpi">
+      <div class="kpi-lbl">${k.l}</div>
+      <div class="kpi-val" style="color:${k.col}">${k.v}</div>
+      <div class="kpi-sub">${k.s}</div>
+    </div>`).join('');
+
+  // Card receitas
+  const rows_rec = [
+    ['Salário Douglas', brl(n('sal_douglas')), 'var(--green)'],
+    ['Salário Daiane',  brl(n('sal_daiane')),  'var(--green)'],
+    ['Aluguel',         brl(n('aluguel')),      'var(--teal)'],
+    ['Dividendos',      brl(n('dividendos')),   'var(--accent)'],
+    n('fgts')>0?['Saque FGTS',brl(n('fgts')),'var(--yellow)']:null,
+    n('ferias')>0?['1/3 Férias',brl(n('ferias')),'var(--yellow)']:null,
+    n('plr')>0?['PLR',brl(n('plr')),'var(--yellow)']:null,
+    n('restituicao')>0?['Restituição IR',brl(n('restituicao')),'var(--yellow)']:null,
+    n('outros_rec')>0?['Outros',brl(n('outros_rec')),'var(--muted)']:null,
+  ].filter(Boolean);
+  document.getElementById('card-receitas').innerHTML =
+    `<div class="section-title" style="color:var(--green)">📥 Composição da Receita</div>`+
+    rows_rec.map(([l,v,col])=>`<div class="detail-row"><span class="detail-lbl">${l}</span><span class="detail-val" style="color:${col}">${v}</span></div>`).join('')+
+    `<div class="detail-row" style="font-weight:700"><span style="color:var(--green)">TOTAL</span><span style="color:var(--green);font-family:monospace">${brl(c.rec_total)}</span></div>`;
+
+  // Card despesas
+  const desp_list = [
+    ['Fatura C6', n('fatura_c6'), 'var(--red)'],
+    ['Pessoal (casal)', n('pessoal_daiane')+n('pessoal_douglas'), 'var(--yellow)'],
+    ['Saúde (Unimed)', n('unimed_plano')+n('unimed_cop')+n('unimed_dep'), '#E67E22'],
+    ['Farmácia (sindicato)', n('farmacia'), 'var(--teal)'],
+    ['Escola Pedro', n('escola_pedro'), 'var(--accent)'],
+    ['Luz + Água + Internet', n('luz')+n('agua')+n('internet'), 'var(--muted)'],
+    ['Vivo (2 linhas)', n('vivo'), 'var(--muted)'],
+    ['Club', n('club'), 'var(--muted)'],
+    ['Diarista', c.diarista_val, 'var(--teal)'],
+    ['Doações (1%)', c.doacoes, 'var(--purple)'],
+    ['Prestação PB', n('prestacao_pb'), 'var(--red)'],
+    ['Pós-grad Daiane', n('pos_daiane'), 'var(--muted)'],
+    n('iptu_ipva')>0?['IPTU/IPVA', n('iptu_ipva'), 'var(--muted)']:null,
+    n('extras_desp')>0?['Extras', n('extras_desp'), 'var(--muted)']:null,
+  ].filter(Boolean);
+  document.getElementById('card-despesas').innerHTML =
+    `<div class="section-title" style="color:var(--red)">📤 Composição das Despesas</div>`+
+    desp_list.map(([l,v,col])=>`<div class="detail-row"><span class="detail-lbl">${l}</span><span class="detail-val" style="color:${col}">${brl(v)}</span></div>`).join('')+
+    `<div class="detail-row" style="font-weight:700"><span style="color:var(--red)">TOTAL</span><span style="color:var(--red);font-family:monospace">${brl(c.custo_total)}</span></div>`;
+
+  // Card quinzena
+  const c6v = n('fatura_c6');
+  const c6diff = c6v - 7000;
+  const progPct = Math.min((c6v/9000)*100, 100);
+  document.getElementById('card-quinzena').innerHTML =
+    `<div class="section-title" style="color:var(--accent)">📅 Fluxo Dia 15</div>`+
+    [['Adiantamento Douglas', 4484, 'var(--green)'],
+     ['Fatura C6', c6v, c6v<=7000?'var(--green)':'var(--red)'],
+     ['Prestação PB', n('prestacao_pb'), 'var(--red)'],
+    ].map(([l,v,col])=>`<div class="detail-row"><span class="detail-lbl">${l}</span><span class="detail-val" style="color:${col}">${brl(v)}</span></div>`).join('')+
+    `<div class="detail-row" style="font-weight:700">
+      <span style="color:${c.res_quinzena>=0?'var(--green)':'var(--red)'}">Resultado</span>
+      <span style="color:${c.res_quinzena>=0?'var(--green)':'var(--red)'};font-family:monospace">${brl(c.res_quinzena)}</span>
+    </div>`+
+    `<div style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px">
+        <span style="color:var(--muted)">Fatura C6 vs Meta R$ 7.000</span>
+        <span style="color:${c6diff<=0?'var(--green)':'var(--red)'};font-weight:700">${c6diff>0?'+':''}${brl(c6diff)}</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="background:${c6v<=7000?'var(--green)':'var(--red)'};width:${progPct}%"></div></div>
+      <div class="prog-labels"><span>R$ 0</span><span style="color:var(--green)">Meta R$7K</span><span>R$9K</span></div>
+    </div>`;
+
+  // Card análise
+  const analises = [
+    { icon: c.atingiu?'✅':'⚠️', t:'Meta de Investimento', col:c.atingiu?'var(--green)':'var(--red)',
+      txt: c.atingiu ? `Investiram ${pct(c.pct_inv)} da receita — ${brl(c.vs_meta)} acima da meta de 30%.`
+                     : `Investiram ${pct(c.pct_inv)} — faltaram ${brl(Math.abs(c.vs_meta))} para atingir a meta de 30%.` },
+    { icon: c6v<=7000?'✅':'⚠️', t:'Fatura C6', col:c6v<=7000?'var(--green)':'var(--yellow)',
+      txt: c6v<=7000 ? `Dentro da meta. Economizaram ${brl(7000-c6v)}.` : `${brl(c6v-7000)} acima da meta de R$ 7.000. Monitorar.` },
+    { icon:'🤲', t:'Doações', col:'var(--purple)',
+      txt:`${brl(c.doacoes)} (1% de ${brl(c.rec_total)}). Quanto maior a renda, maior a doação. LBV · Dízimo · Pastoral.` },
+    { icon:'🧹', t:'Diarista', col:'var(--teal)',
+      txt:`${n('diarista_dias')} dia(s) este mês = ${brl(c.diarista_val)} (R$130/dia). Geralmente 2 a 3x/mês.` },
+    { icon: c.extras>0?'🎁':'📅', t:'Receitas Extras', col:c.extras>0?'var(--yellow)':'var(--muted)',
+      txt: c.extras>0 ? `${brl(c.extras)} em extras este mês. Todo extra alocado em investimentos.` : 'Mês sem receitas extraordinárias. Fluxo recorrente apenas.' },
+  ];
+  document.getElementById('card-analise').innerHTML =
+    `<div class="section-title" style="color:var(--accent)">🧠 Análise Automática</div>`+
+    `<div class="analysis-grid" style="grid-template-columns:1fr">`+
+    analises.map(a=>`<div class="analysis-item" style="border-left-color:${a.col}">
+      <div class="analysis-title" style="color:${a.col}">${a.icon} ${a.t}</div>
+      <div class="analysis-text">${a.txt}</div>
+    </div>`).join('')+
+    `</div>`;
+}
+
+// ══ GRÁFICOS ══════════════════════════════════════════════════════════════════
+let charts = {};
+
+function renderGraficos() {
+  const mesesSalvos = MESES.filter(m => dados[m]);
+  if (mesesSalvos.length === 0) {
+    document.getElementById('graficos-vazio').style.display = 'block';
+    document.getElementById('graficos-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('graficos-vazio').style.display = 'none';
+  document.getElementById('graficos-content').style.display = 'block';
+
+  const labels = mesesSalvos.map(m => m.slice(0,3));
+  const calcs  = mesesSalvos.map(m => calcMes(dados[m]));
+
+  const cfg = {
+    font: { family: 'Segoe UI', color: '#5A7A9A' },
+    grid: '#1E3A5F',
+    tick: '#5A7A9A',
+  };
+
+  const mkChart = (id, type, labels, datasets, extraOpts={}) => {
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(document.getElementById(id), {
+      type,
+      data: { labels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: true,
+        plugins: {
+          legend: { labels: { color: cfg.tick, font: { family: cfg.font.family, size: 11 } } },
+          tooltip: { callbacks: { label: ctx => {
+            const v = ctx.raw;
+            return typeof v === 'number' ? ctx.dataset.label + ': R$ ' + v.toLocaleString('pt-BR',{minimumFractionDigits:2}) : ctx.dataset.label + ': ' + v + '%';
+          }}}
+        },
+        scales: {
+          x: { ticks:{ color:cfg.tick }, grid:{ color:cfg.grid } },
+          y: { ticks:{ color:cfg.tick, callback: v => 'R$'+(v/1000).toFixed(0)+'K' }, grid:{ color:cfg.grid } },
+        },
+        ...extraOpts,
+      }
+    });
+  };
+
+  // Receita · Custo · Investido
+  mkChart('chart-rec-custo','bar',labels,[
+    { label:'Receita',   data:calcs.map(c=>c.rec_total), backgroundColor:'#27AE6099', borderColor:'#27AE60', borderWidth:1, borderRadius:4 },
+    { label:'Custo',     data:calcs.map(c=>c.custo),     backgroundColor:'#E74C3C99', borderColor:'#E74C3C', borderWidth:1, borderRadius:4 },
+    { label:'Investido', data:calcs.map(c=>c.inv),       backgroundColor:'#2E86AB99', borderColor:'#2E86AB', borderWidth:1, borderRadius:4 },
+  ]);
+
+  // % investido vs meta
+  if (charts['chart-meta']) charts['chart-meta'].destroy();
+  charts['chart-meta'] = new Chart(document.getElementById('chart-meta'), {
+    type: 'line',
+    data: { labels, datasets:[
+      { label:'% Investido', data:calcs.map(c=>+(c.pct_inv*100).toFixed(1)), borderColor:'#2E86AB', backgroundColor:'#2E86AB22', tension:.35, fill:true, pointBackgroundColor:'#2E86AB', pointRadius:5 },
+      { label:'Meta 30%',    data:labels.map(()=>30),                         borderColor:'#27AE60', borderDash:[6,3], borderWidth:2, pointRadius:0 },
+    ]},
+    options:{ responsive:true, plugins:{ legend:{labels:{color:cfg.tick}}, tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw+'%'}}},
+      scales:{ x:{ticks:{color:cfg.tick},grid:{color:cfg.grid}}, y:{ticks:{color:cfg.tick,callback:v=>v+'%'},grid:{color:cfg.grid}} } }
+  });
+
+  // Fatura C6
+  if (charts['chart-c6']) charts['chart-c6'].destroy();
+  charts['chart-c6'] = new Chart(document.getElementById('chart-c6'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Fatura C6', data:calcs.map((c,i)=>dados[mesesSalvos[i]].fatura_c6||0),
+        backgroundColor:calcs.map((c,i)=>(dados[mesesSalvos[i]].fatura_c6||0)<=7000?'#27AE6099':'#E74C3C99'),
+        borderColor:calcs.map((c,i)=>(dados[mesesSalvos[i]].fatura_c6||0)<=7000?'#27AE60':'#E74C3C'),
+        borderWidth:1, borderRadius:4 },
+      { label:'Meta R$7.000', data:labels.map(()=>7000), type:'line', borderColor:'#27AE60', borderDash:[6,3], borderWidth:2, pointRadius:0 },
+    ]},
+    options:{ responsive:true, plugins:{legend:{labels:{color:cfg.tick}}},
+      scales:{ x:{ticks:{color:cfg.tick},grid:{color:cfg.grid}}, y:{ticks:{color:cfg.tick,callback:v=>'R$'+(v/1000).toFixed(0)+'K'},grid:{color:cfg.grid},min:5000} } }
+  });
+
+  // Doações
+  if (charts['chart-doacoes']) charts['chart-doacoes'].destroy();
+  charts['chart-doacoes'] = new Chart(document.getElementById('chart-doacoes'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      { label:'Doações (1%)', data:calcs.map(c=>+c.doacoes.toFixed(2)),
+        backgroundColor:'#8E44AD99', borderColor:'#8E44AD', borderWidth:1, borderRadius:4 },
+    ]},
+    options:{ responsive:true, plugins:{legend:{labels:{color:cfg.tick}}},
+      scales:{ x:{ticks:{color:cfg.tick},grid:{color:cfg.grid}}, y:{ticks:{color:cfg.tick,callback:v=>'R$'+v.toFixed(0)},grid:{color:cfg.grid}} } }
+  });
+}
+
+// ══ HISTÓRICO ═════════════════════════════════════════════════════════════════
+function renderHistorico() {
+  const mesesSalvos = MESES.filter(m => dados[m]);
+  if (mesesSalvos.length === 0) {
+    document.getElementById('historico-vazio').style.display = 'block';
+    document.getElementById('historico-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('historico-vazio').style.display = 'none';
+  document.getElementById('historico-content').style.display = 'block';
+
+  let totRec=0,totCusto=0,totSaldo=0,totInv=0,totMeta=0,totDoacoes=0,totC6=0;
+  const rows = mesesSalvos.map(mes => {
+    const c = calcMes(dados[mes]);
+    totRec+=c.rec_total; totCusto+=c.custo; totSaldo+=c.saldo;
+    totInv+=c.inv; totMeta+=c.meta30; totDoacoes+=c.doacoes;
+    totC6+=(dados[mes].fatura_c6||0);
+    const c6v = dados[mes].fatura_c6||0;
+    return `<tr>
+      <td>${mes}</td>
+      <td class="green">${brl(c.rec_total)}</td>
+      <td class="red">${brl(c.custo)}</td>
+      <td style="color:${c.saldo>=0?'var(--green)':'var(--red)'}">${brl(c.saldo)}</td>
+      <td class="accent">${brl(c.inv)}</td>
+      <td class="muted">${brl(c.meta30)}</td>
+      <td style="color:${c.vs_meta>=0?'var(--green)':'var(--red)'}">${brl(c.vs_meta)}</td>
+      <td style="color:${c.pct_inv>=0.3?'var(--green)':c.pct_inv>=0.2?'var(--yellow)':'var(--red)'}">${pct(c.pct_inv)}</td>
+      <td class="${c6v<=7000?'c6-ok':'c6-bad'}">${brl(c6v)}</td>
+      <td class="purple">${brl(c.doacoes)}</td>
+      <td><span class="badge" style="background:${c.atingiu?'var(--green)':'var(--red)'};color:#fff">${c.atingiu?'✅':'❌'}</span></td>
+    </tr>`;
+  });
+
+  document.getElementById('tbody-historico').innerHTML = rows.join('');
+  const n_ok = mesesSalvos.filter(m=>calcMes(dados[m]).atingiu).length;
+  document.getElementById('tfoot-historico').innerHTML =
+    `<tr class="total-row">
+      <td>TOTAL</td>
+      <td class="green">${brl(totRec)}</td>
+      <td class="red">${brl(totCusto)}</td>
+      <td style="color:${totSaldo>=0?'var(--green)':'var(--red)'}">${brl(totSaldo)}</td>
+      <td class="accent">${brl(totInv)}</td>
+      <td class="muted">${brl(totMeta)}</td>
+      <td style="color:${(totInv-totMeta)>=0?'var(--green)':'var(--red)'}">${brl(totInv-totMeta)}</td>
+      <td style="color:${(totInv/totRec)>=0.3?'var(--green)':'var(--yellow)'}">${pct(totInv/totRec)}</td>
+      <td class="${(totC6/mesesSalvos.length)<=7000?'c6-ok':'c6-bad'}">${brl(totC6/mesesSalvos.length)} /mês</td>
+      <td class="purple">${brl(totDoacoes)}</td>
+      <td style="color:var(--white)">${n_ok}/${mesesSalvos.length} meses</td>
+    </tr>`;
+}
+
+// ══ INIT ══════════════════════════════════════════════════════════════════════
+calcular();
+</script>
+</body>
+</html>
